@@ -2,27 +2,19 @@
 
 ## 📥 Installation
 
-### 1. Install `uv`
-
-If you don't already have `uv` installed:
-
-```bash
-curl -Ls https://astral.sh/uv/install.sh | sh
-```
-
-### 2. Initialize uv project
+### 1. Initialize uv project
 ```bash
 uv init
 ```
 
-### 3. Create and Activate Virtual Environment
+### 2. Create and Activate Virtual Environment
 
 ```bash
 uv venv
 source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
 ```
 
-### 4. Install Dependencies
+### 3. Install Dependencies
 
 ```bash
 uv sync 
