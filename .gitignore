@@ -8,3 +8,4 @@ wheels/
 
 # Virtual environments
 .venv
+gpt_neox_multiseq/final_model/model.safetensors
