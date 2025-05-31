@@ -34,5 +34,8 @@ uv sync --extra cpu # cu128
 ## ▶️ Usage
 Create an output folder before running this command
 ```bash
-python run_model.py --model_path gpt_neox_multiseq/final_model/ --tokenizer_path tokenizer/ --output_path your_output_path/
+python run_model.py \
+  --model_path gpt_neox_multiseq/final_model/ \
+  --tokenizer_path tokenizer/ \
+  --output_path your_output_path/
 ```
