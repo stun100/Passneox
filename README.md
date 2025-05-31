@@ -6,9 +6,6 @@
 
 Put under the `gpt_neox_multiseq/final_model` directory 
 
-```bash
-uv init
-```
 ### 1. Initialize uv project
 ```bash
 uv init
