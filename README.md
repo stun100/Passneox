@@ -4,7 +4,7 @@
 
 ###  0. Download model weights on the Releases section
 
-Put under the `gpt_neox_multiseq/final_model` directory 
+Put `model.safetensors` under the `gpt_neox_multiseq/final_model` directory 
 
 ### 1. Initialize uv project
 ```bash
