@@ -24,9 +24,9 @@ source .venv/bin/activate  # On Windows use `.venv/Scripts/activate`
 uv sync 
 ```
 
-To enable CUDA
+To install torch (cpu or CUDA)
 ```bash
-uv sync --extra cu128
+uv sync --extra cpu # cu128
 ```
 
 ---
