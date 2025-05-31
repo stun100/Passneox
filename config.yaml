@@ -1,0 +1,24 @@
+global:
+  max_password_length: 10
+
+gpt_neox_training:
+  hidden_size: 768
+  num_hidden_layers: 3
+  num_attention_heads: 6
+  intermediate_size: 2048
+  max_position_embeddings: 128
+  
+  num_epochs: 10
+  batch_size: 100
+  save_steps: 1000
+  strings_per_sequence: 10
+
+generator:
+  num_outputs: 100000
+  batch_size: 250
+  top_k: 950
+  top_p: 0.85
+  temperature: 0.80
+  penalty_alpha: 0.0
+  max_temperature: 1.2
+  strings_per_sequence: 10
