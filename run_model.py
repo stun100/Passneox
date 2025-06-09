@@ -34,7 +34,8 @@ def generate_outputs(
     initial_temperature: float = 0.7,
     penalty_alpha: float = 0.0,
     max_temperature: float = 2.0,
-    strings_per_sequence: int = 1
+    strings_per_sequence: int = 1,
+    use_contrastive_search: bool = False
 ) -> Tuple[Set[str], int, pd.DataFrame]:
     """Generate outputs using the model and tokenizer."""
     start_time = time.time()
@@ -109,20 +110,37 @@ def generate_outputs(
             sequences_needed = min(batch_size, (strings_remaining + strings_per_sequence - 1) // strings_per_sequence)
             
             try:
-                # Generate sequences
-                generated_outputs = model.generate(
-                    input_ids,
-                    max_length=adjusted_max_token_length,
-                    num_return_sequences=sequences_needed,
-                    do_sample=True,
-                    top_k=top_k,
-                    top_p=top_p,
-                    temperature=current_temp,
-                    attention_mask=attention_mask,
-                    pad_token_id=pad_token_id,
-                    eos_token_id=eos_token_id,
-                    penalty_alpha=penalty_alpha
-                )
+                if use_contrastive_search:
+
+                    # Generate sequences
+                    generated_outputs = model.generate(
+                        input_ids,
+                        max_length=adjusted_max_token_length,
+                        num_return_sequences=sequences_needed,
+                        #do_sample=True,
+                        top_k=top_k,
+                        #top_p=top_p,
+                        #temperature=current_temp,
+                        attention_mask=attention_mask,
+                        pad_token_id=pad_token_id,
+                        eos_token_id=eos_token_id,
+                        penalty_alpha=penalty_alpha
+                    )
+                else:
+                    # Generate sequences
+                    generated_outputs = model.generate(
+                        input_ids,
+                        max_length=adjusted_max_token_length,
+                        num_return_sequences=sequences_needed,
+                        do_sample=True,
+                        top_k=top_k,
+                        top_p=top_p,
+                        temperature=current_temp,
+                        attention_mask=attention_mask,
+                        pad_token_id=pad_token_id,
+                        eos_token_id=eos_token_id,
+                        penalty_alpha=penalty_alpha
+                    )
                 
                 # Process outputs
                 batch_strings = []
@@ -230,17 +248,27 @@ if __name__ == '__main__':
         penalty_alpha = gen_config['penalty_alpha']
         max_temperature = gen_config['max_temperature']
         strings_per_sequence = gen_config['strings_per_sequence']
-        
+        use_contrastive_search = gen_config.get('use_contrastive_search', False)
+
         # Parse arguments
         parser = argparse.ArgumentParser(description="Generate passwords using pretrained model")
         parser.add_argument('--model_path', type=str, default='model/gpt_neox_multiseq', help='Path to model')
         parser.add_argument('--tokenizer_path', type=str, required=True, help='Path to tokenizer files')
         parser.add_argument('--output_path', type=str, required=True, help='Output directory')
+        parser.add_argument('--contrastive', action='store_true', help='Use contrastive search instead of sampling')
+        parser.add_argument('--sampling', action='store_true', help='Use sampling instead of contrastive search')
         args = parser.parse_args()
+        
+        # Override config with command line arguments
+        if args.contrastive:
+            use_contrastive_search = True
+        elif args.sampling:
+            use_contrastive_search = False
         
         logging.info(f"Generating {num_outputs} passwords")
         logging.info(f"Model: {args.model_path} | Tokenizer: {args.tokenizer_path}")
-        
+        if use_contrastive_search:
+            logging.info(f"Using Contrastive Search as deconding method")
         # Generate passwords
         unique_sequences, duplicate_count, stats = generate_outputs(
             args.model_path, 
@@ -253,7 +281,8 @@ if __name__ == '__main__':
             initial_temperature=initial_temperature,
             penalty_alpha=penalty_alpha,
             max_temperature=max_temperature,
-            strings_per_sequence=strings_per_sequence
+            strings_per_sequence=strings_per_sequence,
+            use_contrastive_search=use_contrastive_search
         )
         
         # Save results
