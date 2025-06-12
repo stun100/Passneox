@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from torch.distributions import Gumbel
+from torch.nn import functional as F
  
 def stochastic_beam_search(model, tokenizer, input_ids, k=5, max_steps=20):
     device = input_ids.device
