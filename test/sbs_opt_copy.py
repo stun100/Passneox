@@ -32,6 +32,7 @@ class StochasticBeamSearch:
             for i, beam in enumerate(beams):
                 # print(t, i)
                 seq, phi_s, g_phi_s = beam
+                print(seq.shape)
                 Z = torch.tensor([float('-inf')])  # Track maximum Gumbel score
                 
                 # Get model predictions for next token
@@ -60,22 +61,14 @@ class StochasticBeamSearch:
                     torch.exp(-g_phi_s_prime)
                 ) # (|V|,)
 
-                # seq (1, seq_len)
-                # y_s_prime (1, seq_len + 1, |V|)
-                seq_repeated = seq.repeat(vocab_size, 1)
-                vocab_tokens = torch.arange(0, vocab_size)
-                y_s_prime = torch.cat([seq_repeated, vocab_tokens.unsqueeze(1)], dim=1) # (|V|, seq_len + 1))
-                
-                # Final tensor: (vocab_size, seq_len + 1, 1, 1)
-                expansions.append(torch.cat([y_s_prime, phi_s_prime.unsqueeze(1), g_tilde.unsqueeze(1)], dim=1)) 
-                print("exxxxx", expansions[0].shape)
-      
-            print("stackkkk", torch.stack(expansions)[:,:,].shape)
-            # torch.stack(expansions).shape = (k, |V|, seq_len + 1, 1, 1)
+                for token_id in range(vocab_size):
+                    # Create expanded sequence
+                    y_s_prime = torch.cat([seq, torch.tensor([[token_id]], device=device)], dim=1)
+                    expansions.append((y_s_prime, phi_s_prime[token_id].item(), g_tilde[token_id].item()))
+
             # Select top-k beams based on adjusted Gumbel scores
-            beams = torch.topk(torch.stack(expansions)[:,:,-1], self.k, dim=4)[0]  # Get top k expansions
-            # expansions.sort(key=lambda x: x[2], reverse=True)
-            # beams = expansions[:self.k]
+            expansions.sort(key=lambda x: x[2], reverse=True)
+            beams = expansions[:self.k]
     
         return beams
     
@@ -97,6 +90,6 @@ if __name__ == "__main__":
     print(f"Search time: {elapsed:.4f} seconds")
 
     print("Generated sequences:")
-    # for seq, phi_s, g_tilde in beams:
-    #     output_text = tokenizer.decode(seq[0], skip_special_tokens=True)
-    #     print(f"Sequence: {output_text}")
+    for seq, phi_s, g_tilde in beams:
+        output_text = tokenizer.decode(seq[0], skip_special_tokens=True)
+        print(f"Sequence: {output_text}")
