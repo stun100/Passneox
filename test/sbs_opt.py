@@ -68,12 +68,16 @@ class StochasticBeamSearch:
                 
                 # Final tensor: (vocab_size, seq_len + 1, 1, 1)
                 expansions.append(torch.cat([y_s_prime, phi_s_prime.unsqueeze(1), g_tilde.unsqueeze(1)], dim=1)) 
-                print("exxxxx", expansions[0].shape)
+                # print("exxxxx", expansions[0].shape)
       
-            print("stackkkk", torch.stack(expansions)[:,:,].shape)
+            stacked_expansion = torch.stack(expansions)
+            # print("stackkkk", torch.stack(expansions)[:,:,].shape)
             # torch.stack(expansions).shape = (k, |V|, seq_len + 1, 1, 1)
             # Select top-k beams based on adjusted Gumbel scores
-            beams = torch.topk(torch.stack(expansions)[:,:,-1], self.k, dim=4)[0]  # Get top k expansions
+            topk_values, topk_indices = torch.topk(stacked_expansion[:,:,-1].flatten(), k=self.k)  # Get top k expansions
+            topk_coords = torch.stack([topk_indices // stacked_expansion.size(1), topk_indices % stacked_expansion.size(1)], dim=1)
+            topk_vectors = stacked_expansion[topk_coords[:, 0], topk_coords[:, 1]]
+            print("topklkkkkkkkkkkkkk",topk_vectors.shape)
             # expansions.sort(key=lambda x: x[2], reverse=True)
             # beams = expansions[:self.k]
     
