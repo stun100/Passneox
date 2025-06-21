@@ -43,7 +43,7 @@ class StochasticBeamSearch:
                 
                 # First pass: compute Gumbel scores for all tokens
                 phi_s_prime = phi_s + log_probs[0, :]  # Add log probabilities to phi_s
-                gumbel_distr = Gumbel(phi_s_prime, 1)
+                gumbel_distr = Gumbel(torch.zeros(phi_s_prime.shape), 1)
                 g_phi_S_prime = phi_s_prime + gumbel_distr.sample()
                 gumbel_scores = g_phi_S_prime
                 Z = torch.max(torch.cat((g_phi_S_prime, torch.tensor([Z]))))
@@ -73,13 +73,14 @@ class StochasticBeamSearch:
 if __name__ == "__main__":
     # Example usage
     model_name = "gpt2"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name).to("cpu")
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
 
     input_text = "My name is"
-    input_ids = tokenizer.encode(input_text, return_tensors="pt").to("cpu")
+    input_ids = tokenizer.encode(input_text, return_tensors="pt").to(device)
 
-    sbs = StochasticBeamSearch(k=3, steps=3, device="cpu", eos_token_id=tokenizer.eos_token_id)
+    sbs = StochasticBeamSearch(k=1, steps=1, device=device, eos_token_id=tokenizer.eos_token_id)
     print("Run search")
     start_time = timeit.default_timer()
     beams = sbs.search(model, input_ids)

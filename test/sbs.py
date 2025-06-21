@@ -74,13 +74,14 @@ class StochasticBeamSearch:
 if __name__ == "__main__":
     # Example usage
     model_name = "gpt2"
+    device = "cuda"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name).to("cpu")
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
 
     input_text = "My name is"
-    input_ids = tokenizer.encode(input_text, return_tensors="pt").to("cpu")
+    input_ids = tokenizer.encode(input_text, return_tensors="pt").to(device)
 
-    sbs = StochasticBeamSearch(k=3, steps=3, device="cpu", eos_token_id=tokenizer.eos_token_id)
+    sbs = StochasticBeamSearch(k=1, steps=1, device=device, eos_token_id=tokenizer.eos_token_id)
     print("Run search")
     start_time = timeit.default_timer()
     beams = sbs.search(model, input_ids)
