@@ -23,7 +23,6 @@ class StochasticBeamSearch:
         vocab_size = model.config.vocab_size
         # Initialize beams: (sequence, log_prob, gumbel_score)
         beams = [(input_ids.clone(), 0, 0)]
-        
         # Generate tokens step by step
         for t in range(self.steps):
             expansions = []
@@ -65,28 +64,29 @@ class StochasticBeamSearch:
                 seq_repeated = seq.repeat(vocab_size, 1)
                 vocab_tokens = torch.arange(0, vocab_size)
                 y_s_prime = torch.cat([seq_repeated, vocab_tokens.unsqueeze(1)], dim=1) # (|V|, seq_len + 1))
-                
-                # Final tensor: (vocab_size, seq_len + 1, 1, 1)
+                # Expansions[0]: (vocab_size, seq_len + 1 + 1 + 1)
                 expansions.append(torch.cat([y_s_prime, phi_s_prime.unsqueeze(1), g_tilde.unsqueeze(1)], dim=1)) 
-                # print("exxxxx", expansions[0].shape)
+                #print("exxxxx", expansions[0].shape)
       
             stacked_expansion = torch.stack(expansions)
-            # print("stackkkk", torch.stack(expansions)[:,:,].shape)
-            # torch.stack(expansions).shape = (k, |V|, seq_len + 1, 1, 1)
+            #print("stackkkk", stacked_expansion.shape)
+            # torch.stack(expansions).shape = (k, |V|, seq_len + 1 + 1 + 1)
             # Select top-k beams based on adjusted Gumbel scores
             topk_values, topk_indices = torch.topk(stacked_expansion[:,:,-1].flatten(), k=self.k)  # Get top k expansions
+            #print("top_k_indices", topk_indices)
             topk_coords = torch.stack([topk_indices // stacked_expansion.size(1), topk_indices % stacked_expansion.size(1)], dim=1)
             topk_vectors = stacked_expansion[topk_coords[:, 0], topk_coords[:, 1]]
-            print("topklkkkkkkkkkkkkk",topk_vectors.shape)
+            #print("topklkkkkkkkkkkkkk",topk_vectors.shape)
             # expansions.sort(key=lambda x: x[2], reverse=True)
-            # beams = expansions[:self.k]
+            seq_length = topk_vectors.shape[1] - 2
+            beams = [(topk_vectors[i,:seq_length].unsqueeze(0).int(), topk_vectors[i, seq_length:seq_length+1].item(), topk_vectors[i, -1].item()) for i in range(topk_vectors.shape[0])]
     
         return beams
     
 if __name__ == "__main__":
     # Example usage
     model_name = "gpt2"
-    device = "cuda"
+    device = "cpu"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
 
@@ -101,6 +101,6 @@ if __name__ == "__main__":
     print(f"Search time: {elapsed:.4f} seconds")
 
     print("Generated sequences:")
-    # for seq, phi_s, g_tilde in beams:
-    #     output_text = tokenizer.decode(seq[0], skip_special_tokens=True)
-    #     print(f"Sequence: {output_text}")
+    for seq, phi_s, g_tilde in beams:
+        output_text = tokenizer.decode(seq[0], skip_special_tokens=True)
+        print(f"Sequence: {output_text}")
