@@ -11,7 +11,7 @@ from tokenizers import SentencePieceBPETokenizer
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, GPTNeoXConfig
 from typing import Set, Tuple
-
+from sbs_batched import StochasticBeamSearch
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -75,7 +75,8 @@ def generate_outputs(
     
     # Prepare input
     input_encoding = tokenizer.encode(bos_token)
-    input_ids = torch.tensor([input_encoding.ids], dtype=torch.long).to(device)
+    input_ids = torch.tensor([input_encoding.ids], dtype=torch.long)
+    print(input_ids.shape)
     attention_mask = torch.ones_like(input_ids, dtype=torch.long).to(device)
     
     # Calculate max token length
@@ -94,6 +95,10 @@ def generate_outputs(
     all_generated_strings = []
     batch_stats = []
     
+
+    sbs = StochasticBeamSearch(k=3, steps=adjusted_max_token_length -1, device=device, eos_token_id=eos_token_id)
+
+    input_ids = input_ids.repeat(batch_size, 1)
     with torch.no_grad():
         batch_num = 0
         
@@ -127,20 +132,26 @@ def generate_outputs(
                         penalty_alpha=penalty_alpha
                     )
                 else:
+                    
+                    print(input_ids.shape)
+                    generated_outputs = sbs.search(model, input_ids, attention_mask)
+
                     # Generate sequences
-                    generated_outputs = model.generate(
-                        input_ids,
-                        max_length=adjusted_max_token_length,
-                        num_return_sequences=sequences_needed,
-                        do_sample=True,
-                        top_k=top_k,
-                        top_p=top_p,
-                        temperature=current_temp,
-                        attention_mask=attention_mask,
-                        pad_token_id=pad_token_id,
-                        eos_token_id=eos_token_id,
-                        penalty_alpha=penalty_alpha
-                    )
+                    # generated_outputs = model.generate(
+                    #     input_ids,
+                    #     max_length=adjusted_max_token_length,
+                    #     num_return_sequences=sequences_needed,
+                    #     do_sample=True,
+                    #     top_k=top_k,
+                    #     top_p=top_p,
+                    #     temperature=current_temp,
+                    #     attention_mask=attention_mask,
+                    #     pad_token_id=pad_token_id,
+                    #     eos_token_id=eos_token_id,
+                    #     penalty_alpha=penalty_alpha
+                    # )
+
+
                 
                 # Process outputs
                 batch_strings = []

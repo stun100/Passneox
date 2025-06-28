@@ -14,8 +14,8 @@ gpt_neox_training:
   strings_per_sequence: 10
 
 generator:
-  num_outputs: 100
-  batch_size: 250
+  num_outputs: 10000
+  batch_size: 50
   top_k: 10
   top_p: 0.85
   temperature: 0.80

@@ -19,7 +19,7 @@ class StochasticBeamSearch:
         self.device = device
         self.eos_token_id = eos_token_id
 
-    def search(self, model, input_ids):
+    def search(self, model, input_ids, attention_mask):
         vocab_size = model.config.vocab_size
         batch_size = input_ids.shape[0]
         # Initialize beams: (sequence, log_prob, gumbel_score)
@@ -131,9 +131,7 @@ class StochasticBeamSearch:
             # seq_length = topk_vectors.shape[1] - 2
             # beams = [(topk_vectors[i,:seq_length].unsqueeze(0).int(), topk_vectors[i, seq_length:seq_length+1].item(), topk_vectors[i, -1].item()) for i in range(topk_vectors.shape[0])]
 
-            # best batched sequence
             output = beams[0][0]
-
         return output
     
 if __name__ == "__main__":
