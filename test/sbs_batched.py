@@ -41,7 +41,7 @@ class StochasticBeamSearch:
                     logits = outputs.logits[:, -1, :].to("cpu")  # Last token logits
                     log_probs = F.log_softmax(logits, dim=-1) # (b, |V|)
                 
-                gumbel_distr = Gumbel(torch.zeros(log_probs.shape), 1)# Gumbel distribution for sampling
+                gumbel_distr = Gumbel(torch.zeros(log_probs.shape), 1, )# Gumbel distribution for sampling
 
                 # First pass: compute Gumbel scores for all tokens
                 phi_s_prime = phi_s + log_probs # (b, |V|)
@@ -57,11 +57,33 @@ class StochasticBeamSearch:
                 # print("g_phi_s", g_phi_s.shape)
                 # print("g_phi_s_prime", g_phi_s_prime.shape)
                 # print("Z", Z.shape)
-                g_tilde = -torch.log(
-                    torch.exp(-g_phi_s) - 
-                    torch.exp(-Z) + 
-                    torch.exp(-g_phi_s_prime)
-                ) # (b, |V|)
+
+
+                Zb = Z.expand_as(g_phi_s_prime)  # (batch, V)
+
+                delta = g_phi_s_prime - Zb       # (batch, V)
+
+                log1mexp = torch.where(
+                    delta > -0.693,                   
+                    torch.log(-torch.expm1(delta)),   
+                    torch.log1p(-torch.exp(delta))    
+                )  # (batch, V)
+
+                v = g_phi_s - g_phi_s_prime + log1mexp  # (batch, V)
+
+                g_tilde = (
+                    g_phi_s
+                    - torch.maximum(v, torch.zeros_like(v))
+                    - torch.log1p(torch.exp(-v.abs()))
+                )  # (batch, V)
+
+                # g_tilde = -torch.log(torch.clamp(
+                #     torch.exp(-g_phi_s) - 
+                #     torch.exp(-Z) + 
+                #     torch.exp(-g_phi_s_prime), min=1e-9)
+                # ) # (b, |V|)
+                # if float('inf') in g_tilde:
+                #     print(t)
 
                 # seq (b, seq_len)
                 # y_s_prime (b, seq_len + 1, |V|)
@@ -108,7 +130,7 @@ class StochasticBeamSearch:
             # # expansions.sort(key=lambda x: x[2], reverse=True)
             # seq_length = topk_vectors.shape[1] - 2
             # beams = [(topk_vectors[i,:seq_length].unsqueeze(0).int(), topk_vectors[i, seq_length:seq_length+1].item(), topk_vectors[i, -1].item()) for i in range(topk_vectors.shape[0])]
-    
+
         return beams
     
 if __name__ == "__main__":
@@ -128,7 +150,7 @@ if __name__ == "__main__":
     elapsed = timeit.default_timer() - start_time
     print(f"Search time: {elapsed:.4f} seconds")
 
-    print("Generated sequences:")
+    print("Generated sequences:", beams)
     for seq, phi_s, g_tilde in beams:
         for batch in range(seq.shape[0]):
             output_text = tokenizer.decode(seq[batch], skip_special_tokens=True)
