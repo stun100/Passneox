@@ -35,7 +35,9 @@ def generate_outputs(
     penalty_alpha: float = 0.0,
     max_temperature: float = 2.0,
     strings_per_sequence: int = 1,
-    use_contrastive_search: bool = False
+    use_contrastive_search: bool = False,
+    use_sbs: bool = False,
+    sbs_k: int = 3
 ) -> Tuple[Set[str], int, pd.DataFrame]:
     """Generate outputs using the model and tokenizer."""
     start_time = time.time()
@@ -96,7 +98,7 @@ def generate_outputs(
     batch_stats = []
     
 
-    sbs = StochasticBeamSearch(k=3, steps=adjusted_max_token_length -1, device=device, eos_token_id=eos_token_id)
+    sbs = StochasticBeamSearch(k=sbs_k, steps=adjusted_max_token_length -1, device=device, eos_token_id=eos_token_id)
 
     input_ids = input_ids.repeat(batch_size, 1)
     with torch.no_grad():
@@ -131,25 +133,25 @@ def generate_outputs(
                         eos_token_id=eos_token_id,
                         penalty_alpha=penalty_alpha
                     )
-                else:
+                elif use_sbs:
                     
-                    print(input_ids.shape)
                     generated_outputs = sbs.search(model, input_ids, attention_mask)
-
+                
+                else:
                     # Generate sequences
-                    # generated_outputs = model.generate(
-                    #     input_ids,
-                    #     max_length=adjusted_max_token_length,
-                    #     num_return_sequences=sequences_needed,
-                    #     do_sample=True,
-                    #     top_k=top_k,
-                    #     top_p=top_p,
-                    #     temperature=current_temp,
-                    #     attention_mask=attention_mask,
-                    #     pad_token_id=pad_token_id,
-                    #     eos_token_id=eos_token_id,
-                    #     penalty_alpha=penalty_alpha
-                    # )
+                    generated_outputs = model.generate(
+                        input_ids,
+                        max_length=adjusted_max_token_length,
+                        num_return_sequences=sequences_needed,
+                        do_sample=True,
+                        top_k=top_k,
+                        top_p=top_p,
+                        temperature=current_temp,
+                        attention_mask=attention_mask,
+                        pad_token_id=pad_token_id,
+                        eos_token_id=eos_token_id,
+                        penalty_alpha=penalty_alpha
+                    )
 
 
                 
@@ -260,6 +262,8 @@ if __name__ == '__main__':
         max_temperature = gen_config['max_temperature']
         strings_per_sequence = gen_config['strings_per_sequence']
         use_contrastive_search = gen_config.get('use_contrastive_search', False)
+        use_sbs = gen_config.get('use_sbs', False)
+        sbs_k = gen_config['sbs_k']
 
         # Parse arguments
         parser = argparse.ArgumentParser(description="Generate passwords using pretrained model")
@@ -267,14 +271,20 @@ if __name__ == '__main__':
         parser.add_argument('--tokenizer_path', type=str, required=True, help='Path to tokenizer files')
         parser.add_argument('--output_path', type=str, required=True, help='Output directory')
         parser.add_argument('--contrastive', action='store_true', help='Use contrastive search instead of sampling')
+        parser.add_argument('--sbs', action='store_true', help='Use Stochastic Beam Search')
         parser.add_argument('--sampling', action='store_true', help='Use sampling instead of contrastive search')
         args = parser.parse_args()
         
         # Override config with command line arguments
         if args.contrastive:
             use_contrastive_search = True
-        elif args.sampling:
+            use_sbs = False
+        elif args.sbs:
             use_contrastive_search = False
+            use_sbs = True
+        else:
+            use_contrastive_search = False
+            use_sbs = False
         
         logging.info(f"Generating {num_outputs} passwords")
         logging.info(f"Model: {args.model_path} | Tokenizer: {args.tokenizer_path}")
@@ -293,7 +303,9 @@ if __name__ == '__main__':
             penalty_alpha=penalty_alpha,
             max_temperature=max_temperature,
             strings_per_sequence=strings_per_sequence,
-            use_contrastive_search=use_contrastive_search
+            use_contrastive_search=use_contrastive_search,
+            use_sbs=use_sbs,
+            sbs_k=sbs_k
         )
         
         # Save results

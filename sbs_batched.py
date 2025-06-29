@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
-import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessorList, MinLengthLogitsProcessor
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from torch.distributions import Gumbel
 import timeit
 
@@ -41,22 +40,17 @@ class StochasticBeamSearch:
                     logits = outputs.logits[:, -1, :].to("cpu")  # Last token logits
                     log_probs = F.log_softmax(logits, dim=-1) # (b, |V|)
                 
-                gumbel_distr = Gumbel(torch.zeros(log_probs.shape), 1, )# Gumbel distribution for sampling
+                gumbel_distr = Gumbel(torch.zeros(log_probs.shape), 1, ) # Gumbel distribution for sampling
 
-                # First pass: compute Gumbel scores for all tokens
                 phi_s_prime = phi_s + log_probs # (b, |V|)
                 g_phi_s_prime = phi_s_prime + gumbel_distr.sample() # (b, |V|)
-                # gumbel_scores = g_phi_s_prime 
+
                 Z = torch.max(
                     torch.cat([
                         g_phi_s_prime,
                         Z     
                     ], dim=1) # (b, V + 1)
                 , dim=1, keepdim=True).values # (b, 1)
-                # Compute g_tilde using the SBS formula
-                # print("g_phi_s", g_phi_s.shape)
-                # print("g_phi_s_prime", g_phi_s_prime.shape)
-                # print("Z", Z.shape)
 
 
                 Zb = Z.expand_as(g_phi_s_prime)  # (batch, V)
@@ -85,20 +79,16 @@ class StochasticBeamSearch:
                 # if float('inf') in g_tilde:
                 #     print(t)
 
-                # seq (b, seq_len)
-                # y_s_prime (b, seq_len + 1, |V|)
+                # seq = (b, seq_len)
+                # y_s_prime = (b, seq_len + 1, |V|)
                 seq_repeated = seq.unsqueeze(0).permute(1,0,2).repeat(1, vocab_size, 1) # (b, V, seq_len)
                 vocab_tokens = torch.arange(0, vocab_size).repeat(batch_size, 1) # (b, V)
                 y_s_prime = torch.cat([seq_repeated, vocab_tokens.unsqueeze(-1)], dim=2) # (b, |V|, seq_len + 1))
 
                 # Expansions[0]: (b, V, seq_len + 1 + 1 + 1)
                 expansions.append(torch.cat([y_s_prime, phi_s_prime.unsqueeze(-1), g_tilde.unsqueeze(-1)], dim=2)) 
-                # print("exxxxx", expansions[0].shape)
       
             stacked_expansion = torch.stack(expansions).permute(1,0,2,3)
-            #print("stackkkk", stacked_expansion.shape)
-            # torch.stack(expansions).shape = (b, k, |V|, seq_len + 1 + 1 + 1)
-            # Select top-k beams based on adjusted Gumbel scores
 
             batch_size, k_dim, v_dim, data_dim = stacked_expansion.shape
 
@@ -119,18 +109,7 @@ class StochasticBeamSearch:
             beams = [(topk_vectors[i, :, :seq_length].int(), 
                       topk_vectors[i, :, seq_length:seq_length+1], 
                       topk_vectors[i, :, -1].unsqueeze(-1)) for i in range(topk_vectors.shape[0])]
-
-
-
-            # topk_values, topk_indices = torch.topk(stacked_expansion[:,:,-1].flatten(), k=self.k)  # Get top k expansions
-            # #print("top_k_indices", topk_indices)
-            # topk_coords = torch.stack([topk_indices // stacked_expansion.size(1), topk_indices % stacked_expansion.size(1)], dim=1)
-            # topk_vectors = stacked_expansion[topk_coords[:, 0], topk_coords[:, 1]]
-            # #print("topklkkkkkkkkkkkkk",topk_vectors.shape)
-            # # expansions.sort(key=lambda x: x[2], reverse=True)
-            # seq_length = topk_vectors.shape[1] - 2
-            # beams = [(topk_vectors[i,:seq_length].unsqueeze(0).int(), topk_vectors[i, seq_length:seq_length+1].item(), topk_vectors[i, -1].item()) for i in range(topk_vectors.shape[0])]
-
+            
             output = beams[0][0]
         return output
     
