@@ -22,7 +22,7 @@ class StochasticBeamSearch:
         vocab_size = model.config.vocab_size
         batch_size = input_ids.shape[0]
         # Initialize beams: (sequence, log_prob, gumbel_score)
-        beams = [(input_ids.clone(), torch.zeros((batch_size,1)), torch.zeros((batch_size,1)))]
+        beams = [(input_ids.clone(), torch.zeros((batch_size,1), device=self.device), torch.zeros((batch_size,1), device=self.device))]
         # Generate tokens step by step
         for t in range(self.steps):
             expansions = []
@@ -31,16 +31,16 @@ class StochasticBeamSearch:
             for i, beam in enumerate(beams):
                 # seq shape: (b, seq_len)
                 seq, phi_s, g_phi_s = beam
-                Z = torch.tensor([float('-inf')])  # Track maximum Gumbel score
+                Z = torch.tensor([float('-inf')], device=self.device)  # Track maximum Gumbel score
                 Z = Z.repeat(input_ids.shape[0], 1) # (b, 1)
 
                 # Get model predictions for next token
                 with torch.no_grad():
-                    outputs = model(seq.to(self.device), attention_mask=attention_mask)
-                    logits = outputs.logits[:, -1, :].to("cpu")  # Last token logits
+                    outputs = model(seq, attention_mask=attention_mask)
+                    logits = outputs.logits[:, -1, :]  # Last token logits
                     log_probs = F.log_softmax(logits, dim=-1) # (b, |V|)
                 
-                gumbel_distr = Gumbel(torch.zeros(log_probs.shape), 1, ) # Gumbel distribution for sampling
+                gumbel_distr = Gumbel(torch.zeros(log_probs.shape, device=self.device), 1, ) # Gumbel distribution for sampling
 
                 phi_s_prime = phi_s + log_probs # (b, |V|)
                 g_phi_s_prime = phi_s_prime + gumbel_distr.sample() # (b, |V|)
@@ -82,7 +82,7 @@ class StochasticBeamSearch:
                 # seq = (b, seq_len)
                 # y_s_prime = (b, seq_len + 1, |V|)
                 seq_repeated = seq.unsqueeze(0).permute(1,0,2).repeat(1, vocab_size, 1) # (b, V, seq_len)
-                vocab_tokens = torch.arange(0, vocab_size).repeat(batch_size, 1) # (b, V)
+                vocab_tokens = torch.arange(0, vocab_size, device=self.device).repeat(batch_size, 1) # (b, V)
                 y_s_prime = torch.cat([seq_repeated, vocab_tokens.unsqueeze(-1)], dim=2) # (b, |V|, seq_len + 1))
 
                 # Expansions[0]: (b, V, seq_len + 1 + 1 + 1)
@@ -100,7 +100,7 @@ class StochasticBeamSearch:
             topk_k_indices = topk_indices // v_dim  # (b, k)
             topk_v_indices = topk_indices % v_dim   # (b, k)
 
-            batch_indices = torch.arange(batch_size).unsqueeze(1).expand(-1, self.k)  # (b, k)
+            batch_indices = torch.arange(batch_size, device=self.device).unsqueeze(1).expand(-1, self.k)  # (b, k)
 
             # (k, b, seq_len + 1 + 1 + 1)
             topk_vectors = stacked_expansion[batch_indices, topk_k_indices, topk_v_indices].permute(1,0,2)
