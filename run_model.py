@@ -78,12 +78,6 @@ def generate_outputs(
     # Prepare input
     input_encoding = tokenizer.encode(bos_token)
     input_ids = torch.tensor([input_encoding.ids], dtype=torch.long).to(device)
-    if use_sbs:
-        sbs = StochasticBeamSearch(k=sbs_k, steps=adjusted_max_token_length-1, device=device, eos_token_id=eos_token_id)
-        input_ids = input_ids.repeat(batch_size, 1)
-        attention_mask = torch.ones((input_ids.shape[0]*sbs_k, input_ids.shape[1]), dtype=torch.long, device=device)
-    else:
-        attention_mask = torch.ones_like(input_ids, dtype=torch.long).to(device)
 
     # Calculate max token length
     adjusted_max_token_length = max_password_length * strings_per_sequence + strings_per_sequence
@@ -100,6 +94,13 @@ def generate_outputs(
     
     all_generated_strings = []
     batch_stats = []
+
+    if use_sbs:
+        sbs = StochasticBeamSearch(k=sbs_k, steps=adjusted_max_token_length-1, device=device, eos_token_id=eos_token_id)
+        input_ids = input_ids.repeat(batch_size, 1)
+        attention_mask = torch.ones((input_ids.shape[0]*sbs_k, input_ids.shape[1]), dtype=torch.long, device=device)
+    else:
+        attention_mask = torch.ones_like(input_ids, dtype=torch.long).to(device)
 
     with torch.no_grad():
         batch_num = 0
