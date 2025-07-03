@@ -15,7 +15,7 @@ gpt_neox_training:
 
 generator:
   num_outputs: 1000000
-  batch_size: 100
+  batch_size: 200
   top_k: 10
   top_p: 0.85
   temperature: 0.80
