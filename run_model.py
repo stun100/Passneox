@@ -258,7 +258,6 @@ def write_outputs(sequences: Set[str], output_path: str) -> None:
 if __name__ == '__main__':
     try:
 
-
         # Parse arguments
         parser = argparse.ArgumentParser(description="Generate passwords using pretrained model")
         parser.add_argument('--config_file', type=str, default='config.yaml', help='config file')

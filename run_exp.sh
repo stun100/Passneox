@@ -15,5 +15,6 @@ for CONFIG in "${CONFIG_FILES[@]}"; do
     --config_file "$CONFIG" \
     --model_path "$MODEL_PATH" \
     --tokenizer_path "$TOKENIZER_PATH" \
-    --output_path "$OUTPUT_PATH"
+    --output_path "$OUTPUT_PATH" \
+    --sbs 
 done
