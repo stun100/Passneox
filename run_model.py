@@ -233,7 +233,9 @@ def generate_outputs(
     logging.info(f"Generation complete: {len(unique_strings)} unique, {duplicate_count} duplicates "
                 f"({duplicate_count/len(all_generated_strings)*100:.1f}%) in {total_time:.2f}s")
     
-    with open('log_'+str(datetime.now()), mode='w', encoding='utf-8') as log_file:
+    # Ensure logs directory exists
+    os.makedirs('logs', exist_ok=True)
+    with open('logs/log_'+str(datetime.now()), mode='w', encoding='utf-8') as log_file:
             out_str = f"N: {num_outputs}\nk: {sbs_k}\nBatch size: {batch_size}\n" \
                     f"Time: {total_time}\nUnique: {len(unique_strings)}\nDuplicates: {duplicate_count}\n" \
                     f"Duplicate rate: {duplicate_count/len(all_generated_strings)*100:.1f}%"
@@ -255,8 +257,21 @@ def write_outputs(sequences: Set[str], output_path: str) -> None:
 
 if __name__ == '__main__':
     try:
-        # Load config
-        with open('config.yaml', 'r') as f:
+
+
+        # Parse arguments
+        parser = argparse.ArgumentParser(description="Generate passwords using pretrained model")
+        parser.add_argument('--config_file', type=str, default='config.yaml', help='config file')
+        parser.add_argument('--model_path', type=str, default='model/gpt_neox_multiseq', help='Path to model')
+        parser.add_argument('--tokenizer_path', type=str, required=True, help='Path to tokenizer files')
+        parser.add_argument('--output_path', type=str, required=True, help='Output directory')
+        parser.add_argument('--contrastive', action='store_true', help='Use contrastive search instead of sampling')
+        parser.add_argument('--sbs', action='store_true', help='Use Stochastic Beam Search')
+        parser.add_argument('--sampling', action='store_true', help='Use sampling instead of contrastive search')
+        args = parser.parse_args()
+
+                # Load config
+        with open(f'{args.config_file}', 'r') as f:
             config = yaml.safe_load(f)
         
         # Extract parameters
@@ -273,16 +288,6 @@ if __name__ == '__main__':
         use_contrastive_search = gen_config.get('use_contrastive_search', False)
         use_sbs = gen_config.get('use_sbs', False)
         sbs_k = gen_config['sbs_k']
-
-        # Parse arguments
-        parser = argparse.ArgumentParser(description="Generate passwords using pretrained model")
-        parser.add_argument('--model_path', type=str, default='model/gpt_neox_multiseq', help='Path to model')
-        parser.add_argument('--tokenizer_path', type=str, required=True, help='Path to tokenizer files')
-        parser.add_argument('--output_path', type=str, required=True, help='Output directory')
-        parser.add_argument('--contrastive', action='store_true', help='Use contrastive search instead of sampling')
-        parser.add_argument('--sbs', action='store_true', help='Use Stochastic Beam Search')
-        parser.add_argument('--sampling', action='store_true', help='Use sampling instead of contrastive search')
-        args = parser.parse_args()
         
         # Override config with command line arguments
         if args.contrastive:

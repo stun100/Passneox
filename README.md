@@ -34,6 +34,7 @@ uv sync --extra cpu # cu128
 ## ▶️ Usage
 ```bash
 python run_model.py \
+  --config_file config_x.yaml \
   --model_path gpt_neox_multiseq/final_model/ \
   --tokenizer_path tokenizer/ \
   --output_path outputs/

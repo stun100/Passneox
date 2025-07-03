@@ -10,3 +10,5 @@ wheels/
 .venv
 gpt_neox_multiseq/final_model/model.safetensors
 outputs/
+sendme
+logs/
