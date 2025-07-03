@@ -11,7 +11,7 @@ from tokenizers import SentencePieceBPETokenizer
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, GPTNeoXConfig
 from typing import Set, Tuple
-from sbs_batched import StochasticBeamSearch
+from sbs_batched_beams import StochasticBeamSearch
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
