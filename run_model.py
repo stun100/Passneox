@@ -12,6 +12,7 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, GPTNeoXConfig
 from typing import Set, Tuple
 from sbs_batched_beams import StochasticBeamSearch
+from datetime import datetime
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -232,6 +233,13 @@ def generate_outputs(
     logging.info(f"Generation complete: {len(unique_strings)} unique, {duplicate_count} duplicates "
                 f"({duplicate_count/len(all_generated_strings)*100:.1f}%) in {total_time:.2f}s")
     
+    with open('log_'+str(datetime.now()), mode='w', encoding='utf-8') as log_file:
+            out_str = f"N: {num_outputs}\nk: {sbs_k}\nBatch size: {batch_size}\n" \
+                    f"Time: {total_time}\nUnique: {len(unique_strings)}\nDuplicates: {duplicate_count}\n" \
+                    f"Duplicate rate: {duplicate_count/len(all_generated_strings)*100:.1f}%"
+            
+            log_file.write(out_str)
+    
     return unique_strings, duplicate_count, stats_df
 
 def write_outputs(sequences: Set[str], output_path: str) -> None:
@@ -316,6 +324,7 @@ if __name__ == '__main__':
         # Final summary
         logging.info(f"Complete: {len(unique_sequences)} unique passwords, {duplicate_count} duplicates")
         logging.info(f"Duplicate rate: {duplicate_count/num_outputs*100:.1f}%")
+        
         
     except Exception as e:
         logging.error(f"Error: {e}")

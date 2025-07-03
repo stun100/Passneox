@@ -32,11 +32,6 @@ class StochasticBeamSearch:
             expansions = []
 
             flat_seqs = seqs.reshape(batch_size * self.k, -1) # (b*k, seq_len)
-            
-            # Expand each beam by considering all possible next tokens
-            # # seq shape: (b, seq_len)
-            # Z = torch.tensor([float('-inf')], device=self.device)  # Track maximum Gumbel score
-            # Z = Z.repeat(input_ids.shape[0], 1) # (b, 1)
 
             # Get model predictions for next token
             with torch.no_grad():
