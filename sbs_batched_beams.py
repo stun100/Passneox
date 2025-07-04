@@ -95,25 +95,28 @@ class StochasticBeamSearch:
 
             outputs = []
 
-        for batch in seqs:
-            for seq in batch:
-                outputs.append(seq)
+        # for batch in seqs:
+        #     for seq in batch:
+        #         outputs.append(seq)
+
+        # for seq in seqs[:,0,:]:
+        #     outputs.append(seq)
             
-        return outputs
+        return seqs[:,0,:]
     
 if __name__ == "__main__":
     # Example usage
     model_name = "gpt2"
-    device = "cuda"
+    device = "cpu"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
-    k = 5
+    k = 2
 
     input_text = ["My name is", "I love eating"]
     input_ids = tokenizer.encode(input_text, return_tensors="pt").view(2,3).to(device)
     attention_mask = torch.ones((input_ids.shape[0]*k, input_ids.shape[1]), dtype=torch.long).to(device)
 
-    sbs = StochasticBeamSearch(k=k, steps=10, device=device, eos_token_id=tokenizer.eos_token_id)
+    sbs = StochasticBeamSearch(k=k, steps=4, device=device, eos_token_id=tokenizer.eos_token_id)
     print("Run search")
     start_time = timeit.default_timer()
     generated_outputs = sbs.search(model, input_ids, attention_mask=attention_mask)
