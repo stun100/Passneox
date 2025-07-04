@@ -6,7 +6,7 @@ TOKENIZER_PATH="tokenizer/"
 OUTPUT_PATH="outputs/"
 
 # Config files
-CONFIG_FILES=("config_1.yaml") #"config_2.yaml")
+CONFIG_FILES=("config_1.yaml" "config_2.yaml")
 
 # Loop through each config file and run the model
 for CONFIG in "${CONFIG_FILES[@]}"; do
