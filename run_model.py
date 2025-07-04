@@ -235,7 +235,8 @@ def generate_outputs(
     
     # Ensure logs directory exists
     os.makedirs('logs', exist_ok=True)
-    with open('logs/log_'+str(datetime.now()), mode='w', encoding='utf-8') as log_file:
+    safe_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    with open(f'logs/log_{safe_time_str}', mode='w', encoding='utf-8') as log_file:
             out_str = f"N: {num_outputs}\nk: {sbs_k}\nBatch size: {batch_size}\n" \
                     f"Time: {total_time}\nUnique: {len(unique_strings)}\nDuplicates: {duplicate_count}\n" \
                     f"Duplicate rate: {duplicate_count/len(all_generated_strings)*100:.1f}%"

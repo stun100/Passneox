@@ -92,28 +92,35 @@ class StochasticBeamSearch:
             seqs = y_s_prime[batch_indices, beam_indices, token_indices]
             phi_s = phi_s_prime[batch_indices, beam_indices, token_indices]
             g_phi_s = g_tilde[batch_indices, beam_indices, token_indices]
+
+            outputs = []
+
+        for batch in seqs:
+            for seq in batch:
+                outputs.append(seq)
             
-        return seqs[:, 0, :]
+        return outputs
     
 if __name__ == "__main__":
     # Example usage
     model_name = "gpt2"
-    device = "cpu"
+    device = "cuda"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+    k = 5
 
     input_text = ["My name is", "I love eating"]
     input_ids = tokenizer.encode(input_text, return_tensors="pt").view(2,3).to(device)
-    attention_mask = torch.ones((input_ids.shape[0]*3, input_ids.shape[1]), dtype=torch.long).to(device)
+    attention_mask = torch.ones((input_ids.shape[0]*k, input_ids.shape[1]), dtype=torch.long).to(device)
 
-    sbs = StochasticBeamSearch(k=3, steps=10, device=device, eos_token_id=tokenizer.eos_token_id)
+    sbs = StochasticBeamSearch(k=k, steps=10, device=device, eos_token_id=tokenizer.eos_token_id)
     print("Run search")
     start_time = timeit.default_timer()
-    outputs = sbs.search(model, input_ids, attention_mask=attention_mask)
+    generated_outputs = sbs.search(model, input_ids, attention_mask=attention_mask)
     elapsed = timeit.default_timer() - start_time
     print(f"Search time: {elapsed:.4f} seconds")
-
+    
     print("Generated sequences:")
-    for output in outputs:
-        output_text = tokenizer.decode(output, skip_special_tokens=True)
+    for output in generated_outputs:
+        output_text = tokenizer.decode(output, skip_special_tokens=False)
         print(f"Sequence: {output_text}")
